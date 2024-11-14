@@ -4,23 +4,73 @@
 
 
 #dividiamo il backend in moduli cosi riusciamo a lavorare su piu aspetti insieme, un modulo per il login, un modulo per le partite e il login
+import asyncio
+import websockets
+import mysql.connector
+import json
 
-from db import DatabaseConnection
-from auth import AuthenticationService
-from game_logic import GameManager
-from websocket_server import start_websocket_server
+# Configurazione del database
+DB_CONFIG = {
+    'host': '127.0.0.1',
+    'user': 'root',
+    'password': 'root',
+    'database': 'wwtbm'
+}
 
-def main():
-    # Configura connessione al database
-    db = DatabaseConnection(host='localhost', user='root', password='root', dbname='wwtbm')
-    db.connect()
+# Funzione per controllare se l'utente esiste nel database
+def check_user(username, password):
+    try:
+        # Connessione al database
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+        # Query di verifica dell'utente
+        query = "SELECT * FROM utenti WHERE nome = %s AND password = %s"
+        cursor.execute(query, (username, password))
+        
+        # Verifica il risultato
+        result = cursor.fetchone()
+        
+        # Chiude la connessione
+        cursor.close()
+        connection.close()
+        
+        # Restituisce True se l'utente esiste, altrimenti False
+        return result is not None
+    except mysql.connector.Error as err:
+        print("Errore nel database:", err)
+        return False
 
-    # Inizializza il servizio di autenticazione e la logica di gioco
-    auth_service = AuthenticationService(db)
-    game_manager = GameManager(db)
+# Funzione di gestione del WebSocket per i login
+async def login_handler(websocket, path):
+    async for message in websocket:
+        # Decodifica del messaggio JSON ricevuto
+        data = json.loads(message)
+        
+        # Controlla se l'azione richiesta è il login
+        if data.get("action") == "login":
+            username = data.get("username")
+            password = data.get("password")
+            
+            # Verifica l'utente nel database
+            user_exists = check_user(username, password)
+            
+            # Prepara la risposta
+            response = {
+                "action": "login_response",
+                "success": user_exists  # True se l'utente esiste, False altrimenti
+            }
+            
+            # Invia la risposta al client
+            await websocket.send(json.dumps(response))
 
-    # Avvia il server WebSocket
-    start_websocket_server(auth_service, game_manager)
+# Funzione principale per avviare il server WebSocket
+async def main():
+    # Avvia il server WebSocket in ascolto su localhost e porta 8766
+    async with websockets.serve(login_handler, "localhost", 8766):
+        print("Server WebSocket in ascolto su ws://localhost:8765")
+        await asyncio.Future()  # Mantiene il server in esecuzione
 
-if __name__ == '__main__':
-    main()
+# Esecuzione del server
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -16,10 +16,10 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: ResponsiveLayout(
-          //!cambiare la mobilebody quando si finisce di fare le pagine, aggiungere il routing qui
-          mobileBody: PlayerHome() /*MobileLoginPage() */,
-          desktopBody: AdminHome() //DesktopLoginPage(),
-          ),
+        //!cambiare la mobilebody quando si finisce di fare le pagine, aggiungere il routing qui
+        mobileBody: PlayerHome() /*MobileLoginPage() */,
+        desktopBody: DesktopLoginPage(), //AdminHome()
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
