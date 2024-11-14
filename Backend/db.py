@@ -1,13 +1,23 @@
 #gestione delle connessioni e delle operazioni al database.
 
+
 import mysql.connector
 
-config = {
-  'user': 'root',
-  'password': 'root',
-  'host': '127.0.0.1',
-  'database': 'wwtbm',
-  'raise_on_warnings': True,
-}
+class DatabaseConnection:
+    def __init__(self, host, user, password, dbname):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.dbname = dbname
+        self.connection = None
 
-link = mysql.connector.connect(**config)
+    def connect(self):
+        self.connection = mysql.connector.connect(
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=self.dbname
+        )
+
+    def get_connection(self):
+        return self.connection
