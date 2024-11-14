@@ -3,8 +3,8 @@ import mysql.connector
 config = {
   'user': 'root',
   'password': 'root',
-  'host': 'localhost:3306',
-  'database': 'inventory',
+  'host': '127.0.0.1',
+  'database': 'wwtbm',
   'raise_on_warnings': True,
 }
 
