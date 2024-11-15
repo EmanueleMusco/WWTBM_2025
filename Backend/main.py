@@ -9,68 +9,58 @@ import websockets
 import mysql.connector
 import json
 
-# Configurazione del database
-DB_CONFIG = {
-    'host': '127.0.0.1',
-    'user': 'root',
-    'password': 'root',
-    'database': 'wwtbm'
-}
-
-# Funzione per controllare se l'utente esiste nel database
-def check_user(username, password):
+# Funzione per gestire le connessioni dei client
+async def login_handler(websocket):
     try:
-        # Connessione al database
-        connection = mysql.connector.connect(**DB_CONFIG)
-        cursor = connection.cursor()
-        
-        # Query di verifica dell'utente
+        # Aspetta i dati dal client
+        message = await websocket.recv()
+        print(f"Ricevuto messaggio: {message}")
+
+        # Gestione del messaggio ricevuto
+        data = json.loads(message)
+        username = data.get("name")
+        password = data.get("password")
+
+        # Connessione al database e verifica credenziali
+        mydb = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="root",
+            database="wwtbm"
+        )
+        cursor = mydb.cursor(dictionary=True)
+
         query = "SELECT * FROM utenti WHERE nome = %s AND password = %s"
         cursor.execute(query, (username, password))
-        
-        # Verifica il risultato
-        result = cursor.fetchone()
-        
-        # Chiude la connessione
-        cursor.close()
-        connection.close()
-        
-        # Restituisce True se l'utente esiste, altrimenti False
-        return result is not None
-    except mysql.connector.Error as err:
-        print("Errore nel database:", err)
-        return False
+        print(username, password)
+        user = cursor.fetchall()
+        print(len(user))
+        response = {"status": "error", "message": "Credenziali errate"}
+        print (user)
 
-# Funzione di gestione del WebSocket per i login
-async def login_handler(websocket, path):
-    async for message in websocket:
-        # Decodifica del messaggio JSON ricevuto
-        data = json.loads(message)
-        
-        # Controlla se l'azione richiesta è il login
-        if data.get("action") == "login":
-            username = data.get("username")
-            password = data.get("password")
-            
-            # Verifica l'utente nel database
-            user_exists = check_user(username, password)
-            
-            # Prepara la risposta
-            response = {
-                "action": "login_response",
-                "success": user_exists  # True se l'utente esiste, False altrimenti
-            }
-            
-            # Invia la risposta al client
-            await websocket.send(json.dumps(response))
+        if user:
+            if username.lower() == "admin":
+                response = {"status": "success", "role": "admin"}
+            else:
+                response = {"status": "success", "role": "player"}
+
+        await websocket.send(json.dumps(response))
+        print(f"Inviato: {response}")
+
+    except Exception as e:
+        print(f"Errore: {e}")
+    finally:
+        cursor.close()
+        mydb.close()
+
 
 # Funzione principale per avviare il server WebSocket
-async def main():
-    # Avvia il server WebSocket in ascolto su localhost e porta 8766
-    async with websockets.serve(login_handler, "localhost", 8766):
-        print("Server WebSocket in ascolto su ws://localhost:8765")
-        await asyncio.Future()  # Mantiene il server in esecuzione
+import asyncio
+import websockets
 
-# Esecuzione del server
-if __name__ == "__main__":
-    asyncio.run(main())
+async def main():
+    server = await websockets.serve(login_handler, "127.0.0.1", 8766)
+    print("WebSocket server avviato su ws://127.0.0.1:8766")
+    await server.wait_closed()
+
+asyncio.run(main())

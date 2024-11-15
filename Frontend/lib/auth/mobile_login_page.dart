@@ -1,6 +1,8 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:convert';
 
 class MobileLoginPage extends StatefulWidget {
   const MobileLoginPage({super.key});
@@ -18,13 +20,56 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
     final TextEditingController _nameController = TextEditingController();
     final TextEditingController _passwordController = TextEditingController();
 
+    //! cambiare indirizzo ip con indirizzo ip pubblico
+    final _channel = WebSocketChannel.connect(
+      Uri.parse(
+          'ws://localhost:8766'), // Assicurati che l'indirizzo sia corretto
+    );
+
     // Funzione per l'azione del pulsante "Accedi"
     void _onLoginPressed() {
       final name = _nameController.text;
       final password = _passwordController.text;
       print("Nome: $name, Password: $password");
 
-      // Qui puoi aggiungere la logica per l'autenticazione
+      // Invia dati al server
+      final loginData = jsonEncode({
+        "name": name,
+        "password": password,
+      });
+
+      _channel.sink.add(loginData);
+
+      // Ascolta la risposta del server
+      _channel.stream.listen((response) {
+        final decodedResponse = jsonDecode(response);
+        if (decodedResponse['status'] == 'success') {
+          if (decodedResponse['role'] == 'player') {
+            Navigator.pushNamed(context, '/playerhome'); // Route per Admin
+          }
+        } else {
+          // Mostra un messaggio di errore
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Errore'),
+              content: Text(decodedResponse['message'] ?? 'Errore sconosciuto'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      });
+
+      @override
+      void dispose() {
+        _channel.sink.close();
+        super.dispose();
+      }
     }
 
     return SafeArea(

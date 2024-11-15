@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'package:who_want_to_be_millionaire/auth/desktop_login_page.dart';
 import 'package:who_want_to_be_millionaire/auth/mobile_login_page.dart';
@@ -14,12 +16,16 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       home: ResponsiveLayout(
         //!cambiare la mobilebody quando si finisce di fare le pagine, aggiungere il routing qui
-        mobileBody: PlayerHome() /*MobileLoginPage() */,
-        desktopBody: DesktopLoginPage(), //AdminHome()
+        mobileBody: MobileLoginPage(),
+        desktopBody: DesktopLoginPage(),
       ),
+      routes: {
+        '/playerhome': (context) => const PlayerHome(),
+        '/adminhome': (context) => const AdminHome(),
+      },
       debugShowCheckedModeBanner: false,
     );
   }
